@@ -7,10 +7,12 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.plaf.basic.BasicTabbedPaneUI.TabbedPaneLayout;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
@@ -26,6 +28,9 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextPane;
+import javax.swing.JTabbedPane;
+import java.awt.FlowLayout;
+import java.awt.Font;
 
 public class MySQLWorkbenchApp
 {
@@ -34,13 +39,19 @@ public class MySQLWorkbenchApp
 	private Control ctrl;
 	private String table;
 	private JTextField newTableName;
+	private DefaultListModel<String> tablesList;
 	private String[] columnNamesGlobal;
 	private Object[][] dataGlobal;
-	JTextPane textAreaConsole;
+	JTabbedPane tabbedPane;
+	JTextPane paneForConsole, paneForOutput;
 	private boolean emptyPane = true;
 	private boolean enteredValidTableName = false;
+	
 	public SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
+	private static final int RESULTS = 0;
+	private static final int CONSOLE = 1;
+	
 	/**
 	 * Launch the application.
 	 */
@@ -83,28 +94,33 @@ public class MySQLWorkbenchApp
 	private void initialize()
 	{
 		mframe = new JFrame();
-		mframe.setBounds(100, 100, 640, 800);
+		mframe.setBounds(0, 0, 1280, 800);
 		mframe.setTitle("MySQL Database Workbench");
 		mframe.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		mframe.getContentPane().setLayout(null);
-		
-		JScrollPane consoleScrollPane = new JScrollPane();
-		consoleScrollPane.setBounds(0, 619, 640, 73);
-		mframe.getContentPane().add(consoleScrollPane);
-
-		textAreaConsole = new JTextPane();
-		textAreaConsole.setBounds(0, 619, 640, 73);
-		textAreaConsole.setEditable(false);
-		consoleScrollPane.setViewportView(textAreaConsole);
 
 		JLabel lblListOfTables = new JLabel("List of Tables:");
-		lblListOfTables.setBounds(6, 41, 89, 16);
+		lblListOfTables.setBounds(831, 42, 89, 16);
 		mframe.getContentPane().add(lblListOfTables);
 
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(94, 77, 300, 80);
+		scrollPane.setBounds(930, 40, 327, 347);
 		mframe.getContentPane().add(scrollPane);
-
+		
+		paneForOutput = new JTextPane();
+		JScrollPane jspOutput = new JScrollPane(paneForOutput);
+		jspOutput.setBounds(232, 5, 0, 16);
+		
+		paneForConsole = new JTextPane();
+		JScrollPane jspConsole = new JScrollPane(paneForConsole);
+		jspConsole.setBounds(232, 5, 0, 16);
+		
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(0, 542, 1280, 150);
+		tabbedPane.add("Results", jspOutput);
+		tabbedPane.add("Console", jspConsole);
+		mframe.getContentPane().add(tabbedPane);
+		
 		// call Control model
 		ctrl = new Control();
 		populateConsole("Success: Started application.");
@@ -120,19 +136,22 @@ public class MySQLWorkbenchApp
 
 		//populate JList with tables
 		JLabel lblDatabase = new JLabel("Database: " + ctrl.getDatabase());
-		lblDatabase.setBounds(6, 6, 169, 16);
+		lblDatabase.setFont(new Font("Lucida Grande", Font.PLAIN, 15));
+		lblDatabase.setBounds(25, 6, 198, 29);
 		mframe.getContentPane().add(lblDatabase);
 
-		DefaultListModel<String> tablesList = new DefaultListModel<String>();
+		tablesList = new DefaultListModel<String>();
 		ArrayList<String> tables = ctrl.getListOfTables();
 		for (String tab : tables)
 		{
 			tablesList.addElement(tab);
 		}
-
+		
 		JList<String> listOfTables = new JList<String>(tablesList);
+		listOfTables.setFont(new Font("Lucida Grande", Font.PLAIN, 13));
+		scrollPane.setViewportView(listOfTables);
 		listOfTables.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-
+		
 		ListSelectionListener listChanged = new ListSelectionListener()
 		{
 			@Override
@@ -145,17 +164,8 @@ public class MySQLWorkbenchApp
 				}
 			}
 		};
-
+		
 		listOfTables.addListSelectionListener(listChanged);
-		scrollPane.setViewportView(listOfTables);
-
-		JLabel lblTableCont = new JLabel("Contents of Table...");
-		lblTableCont.setBounds(6, 299, 154, 16);
-		mframe.getContentPane().add(lblTableCont);
-
-		JScrollPane contentsScrollPane = new JScrollPane();
-		contentsScrollPane.setBounds(94, 330, 477, 238);
-		mframe.getContentPane().add(contentsScrollPane);
 
 		//horizontally scrollable pane
 		JTextPane textPane = new JTextPane()
@@ -166,27 +176,25 @@ public class MySQLWorkbenchApp
 				return getUI().getPreferredSize(this).width <= getParent().getSize().width;
 			}
 		};
-		contentsScrollPane.setViewportView(textPane);
-		textPane.setEditable(false);
-		textPane.setBorder(BorderFactory.createLineBorder(Color.GREEN));
-
+	
 		JButton btnGetContent = new JButton("Get Content");
+		btnGetContent.setBounds(1123, 410, 117, 29);
 		btnGetContent.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				actionPerformedGetContent(textPane);
+				actionPerformedGetContent(paneForOutput);
 			}
 		});
-		btnGetContent.setBounds(406, 97, 117, 29);
 		mframe.getContentPane().add(btnGetContent);
 
 		newTableName = new JTextField("Enter new table name");
-		newTableName.setBounds(94, 215, 169, 26);
+		newTableName.setBounds(930, 451, 175, 26);
 		mframe.getContentPane().add(newTableName);
 		newTableName.setColumns(10);
 
 		JButton btnCreateTable = new JButton("Create Table");
+		btnCreateTable.setBounds(1123, 451, 117, 29);
 		btnCreateTable.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -194,9 +202,7 @@ public class MySQLWorkbenchApp
 				boolean createdTable = false;
 				if (table != null && enteredValidTableName(newTableName))
 				{
-					ctrl.connectToMySQLDatabase();
 					createdTable = createTable(table, newTableName);
-					ctrl.disconnectFromMySQLDatabase();
 				} else
 				{
 					JOptionPane.showMessageDialog(mframe,
@@ -212,24 +218,22 @@ public class MySQLWorkbenchApp
 				}
 			}
 		});
-		btnCreateTable.setBounds(277, 215, 117, 29);
 		mframe.getContentPane().add(btnCreateTable);
 
 		JLabel lblCopyTable = new JLabel("Copy Table...");
-		lblCopyTable.setBounds(6, 220, 89, 16);
+		lblCopyTable.setBounds(844, 456, 89, 16);
 		mframe.getContentPane().add(lblCopyTable);
 
 		//copy table contents to new table (create table if not exists)
 		JButton buttonCopyContent = new JButton("Copy Content");
+		buttonCopyContent.setBounds(1123, 492, 117, 29);
 		buttonCopyContent.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
 				if (table != null && enteredValidTableName(newTableName))
 				{
-					ctrl.connectToMySQLDatabase();
 					copyContents(table, newTableName);
-					ctrl.disconnectFromMySQLDatabase();
 					populateConsole("Success: Copied contents to table " + newTableName.getText());
 				} else
 				{
@@ -239,27 +243,53 @@ public class MySQLWorkbenchApp
 				}
 			}
 		});
-		buttonCopyContent.setBounds(406, 215, 117, 29);
 		mframe.getContentPane().add(buttonCopyContent);
-
-		//console for stdout
-		JLabel lblConsole = new JLabel("Console:");
-		lblConsole.setBounds(6, 599, 78, 16);
-		mframe.getContentPane().add(lblConsole);
-
+		
 		//update table list
 		JButton btnRefresh = new JButton("Refresh");
+		btnRefresh.setBounds(994, 410, 117, 29);
 		btnRefresh.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
 			{
-				listOfTables.setModel(refreshList(listOfTables));
+				listOfTables.setModel(refreshList());
 				populateConsole("Success: Refreshed table list.");
 			}
 		});
-		btnRefresh.setBounds(406, 128, 117, 29);
 		mframe.getContentPane().add(btnRefresh);
-
+		
+		JTextPane textPaneForEditor = new JTextPane();
+		
+		JScrollPane scrollPaneForEditor = new JScrollPane(textPaneForEditor);
+		scrollPaneForEditor.setBounds(25, 40, 769, 443);
+		mframe.getContentPane().add(scrollPaneForEditor);
+		
+		JButton btnExecute = new JButton("Execute");
+		btnExecute.setBounds(682, 492, 117, 29);
+		btnExecute.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				parseEditorAndExecute(textPaneForEditor);
+			}
+		});
+		mframe.getContentPane().add(btnExecute);
+		
+		JButton buttonDeleteTable = new JButton("Drop Table");
+		buttonDeleteTable.addActionListener(new ActionListener() 
+		{
+			public void actionPerformed(ActionEvent e) 
+			{
+				if (table != null)
+				{
+					dropTable(table);
+					populateConsole("Success: Dropped table " + table);
+				}
+			}
+		});
+		buttonDeleteTable.setBounds(994, 492, 117, 29);
+		mframe.getContentPane().add(buttonDeleteTable);
+		
 		disconnectFromDB();
 		populateConsole("Success: Disconnected from database.");
 	}
@@ -294,7 +324,109 @@ public class MySQLWorkbenchApp
 		columnNamesGlobal = columnNames.clone();
 		dataGlobal = data.clone();
 	}
+	
+	//call model create method
+	private boolean createTable(String existingTable, JTextField newTable)
+	{
+		return ctrl.createTable(existingTable, newTable.getText());
+	}
 
+	private boolean copyContents(String existingTable, JTextField newTable)
+	{
+		return ctrl.copyContents(existingTable, newTable.getText());
+	}
+
+	private void actionPerformedGetContent(JTextPane textPane)
+	{
+		if (table != null)
+		{
+			String[] columnNames = ctrl.columnNames(table);
+			Object[][] data = ctrl.actionPerformedGetContent(table);
+			
+			transferTableInformation(columnNames, data);
+			populateConsole("Success: Retrieved contents for table " + table);
+			populatePane(textPane);
+		} else
+		{
+			JOptionPane.showMessageDialog(mframe, "Select a table...");
+		}
+	}
+	
+	private void actionPerformedGetContent(String table)
+	{
+		String[] columnNames = ctrl.columnNames(table);
+		Object[][] data = ctrl.actionPerformedGetContent(table);
+		
+		transferTableInformation(columnNames, data);
+		populateConsole("Success: Retrieved contents for table " + table);
+		populatePane(paneForOutput);
+	}
+
+	private DefaultListModel<String> refreshList()
+	{
+		ArrayList<String> tablesRef = ctrl.getListOfTables();
+		tablesList = new DefaultListModel<String>();
+
+		for (String tab : tablesRef)
+		{
+			tablesList.addElement(tab);
+		}
+		return tablesList;
+	}
+	
+	private void parseEditorAndExecute(JTextPane tp)
+	{
+		String[] lines = tp.getText().split(";");
+		int length = lines.length;
+		
+		for (int i = 0; i < length; i++)
+		{
+			lines[i] = lines[i].toLowerCase();
+			if (lines[i].contains("select"))
+			{
+				int index = lines[i].indexOf("select * from ");
+				String table = lines[i].substring(index+14, lines[i].length());
+				if (tablesList.contains(table))
+				{
+					actionPerformedGetContent(table);
+				} else
+				{
+					populateConsole("Error: Table " + table + " does not exist.");
+				}
+			} else if (lines[i].contains("drop"))
+			{
+				int index = lines[i].indexOf("drop table ");
+				String table = lines[i].substring(index+11, lines[i].length());
+				if (tablesList.contains(table))
+				{
+					dropTable(table);
+					populateConsole("Success: Dropped table " + table);
+				} else
+				{
+					populateConsole("Error: Table " + table + " does not exist.");
+				}
+			} else if (lines[i].contains("insert") || lines[i].contains("update") || lines[i].contains("delete"))
+			{
+				boolean executed = ctrl.performDMLOperation(lines[i]);
+				if (executed) 
+				{
+					populateConsole("Success: Executed `" + lines[i] + "`");
+				} else
+				{
+					populateConsole("Error: Unable to execute `" + lines[i] + "`. Check if syntax is correct.");
+				}
+			} else
+			{
+				populateConsole("Error: Unknown operation. The application can only perform limited number of DDL/DML operations.");
+			}
+		}
+	}
+	
+	private void dropTable(String table) 
+	{
+		ctrl.dropTable(table);
+	}
+	
 	public String toString()
 	{
 		StringBuffer aString = new StringBuffer();
@@ -344,25 +476,15 @@ public class MySQLWorkbenchApp
 		{
 			e.printStackTrace();
 		}
-	}
-
-	//call model create method
-	private boolean createTable(String existingTable, JTextField newTable)
-	{
-		return ctrl.createTable(existingTable, newTable.getText());
-	}
-
-	private boolean copyContents(String existingTable, JTextField newTable)
-	{
-		return ctrl.copyContents(existingTable, newTable.getText());
+		tabbedPane.setSelectedIndex(RESULTS);
 	}
 
 	private void populateConsole(String text)
 	{
 		Date d = new Date();
-		StyledDocument doc = textAreaConsole.getStyledDocument();
-		Style style = textAreaConsole.addStyle("Color Style", null);
-
+		StyledDocument doc = paneForConsole.getStyledDocument();
+		Style style = paneForConsole.addStyle("Color Style", null);
+		
 		try
 		{
 			doc.insertString(doc.getLength(), d.toString() + ": " + text + "\n", style);
@@ -370,65 +492,6 @@ public class MySQLWorkbenchApp
 		{
 			e.printStackTrace();
 		}
-	}
-
-	private void actionPerformedGetContent(JTextPane textPane)
-	{
-		if (table != null)
-		{
-			ctrl.connectToMySQLDatabase();
-
-			ResultSet rs = ctrl.returnContentsOfTable(table);
-			String[] columnNames = ctrl.columnNames(rs);
-
-			try
-			{
-				int rowCount = rs.last() ? rs.getRow() : 0;
-				rs.beforeFirst();
-				ResultSetMetaData rsm = rs.getMetaData();
-				int columns = rsm.getColumnCount();
-
-				Object[][] data = new Object[rowCount][columns];
-
-				int row = 0;
-
-				while (rs.next())
-				{
-					for (int column = 1; column <= columns; column++)
-					{
-						data[row][column - 1] = rs.getObject(column);
-					}
-					row++;
-				}
-
-				transferTableInformation(columnNames, data);
-
-				populatePane(textPane);
-			} catch (SQLException e1)
-			{
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-		} else
-		{
-			JOptionPane.showMessageDialog(mframe, "Select a table...");
-		}
-		ctrl.disconnectFromMySQLDatabase();
-		populateConsole("Success: Retrieved contents for table " + table);
-	}
-
-	private DefaultListModel<String> refreshList(JList<String> list)
-	{
-		ctrl.connectToMySQLDatabase();
-		ArrayList<String> tablesRef = ctrl.getListOfTables();
-		DefaultListModel<String> dlm = new DefaultListModel<String>();
-
-		for (String tab : tablesRef)
-		{
-			dlm.addElement(tab);
-		}
-		list = new JList<String>(dlm);
-		ctrl.disconnectFromMySQLDatabase();
-		return dlm;
+		tabbedPane.setSelectedIndex(CONSOLE);
 	}
 }

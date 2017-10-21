@@ -190,6 +190,7 @@ public class Control
 
 	public ArrayList<String> getListOfTables()
 	{
+		connectToMySQLDatabase();
 		Statement st = null;
 		ResultSet rs = null;
 		ArrayList<String> tables = new ArrayList<String>();
@@ -206,12 +207,16 @@ public class Control
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
+		} finally 
+		{
+			disconnectFromMySQLDatabase();
 		}
 		return tables;
 	}
 
 	public ResultSet returnContentsOfTable(String table)
 	{
+		connectToMySQLDatabase();
 		PreparedStatement st = null;
 		ResultSet rs = null;
 
@@ -222,15 +227,19 @@ public class Control
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
+		} finally 
+		{
+			//disconnectFromMySQLDatabase();
 		}
 		return rs;
 	}
 
-	public String[] columnNames(ResultSet rs)
+	public String[] columnNames(String table)
 	{
 		ArrayList<String> tables = new ArrayList<String>();
 		try
 		{
+			ResultSet rs = returnContentsOfTable(table); //connection still open
 			ResultSetMetaData rsm = rs.getMetaData();
 			int columns = rsm.getColumnCount();
 			for (int i = 1; i <= columns; i++)
@@ -240,12 +249,16 @@ public class Control
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
+		}  finally 
+		{
+			disconnectFromMySQLDatabase();
 		}
 		return tables.toArray(new String[tables.size()]);
 	}
 
 	boolean createTable(String existingTable, String newTable)
 	{
+		connectToMySQLDatabase();
 		ResultSet rs = null;
 		PreparedStatement st = null;
 		int executed = -1;
@@ -320,7 +333,11 @@ public class Control
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
+		} finally 
+		{
+			disconnectFromMySQLDatabase();
 		}
+		
 		if (executed == 0)
 		{
 			return true;
@@ -330,6 +347,7 @@ public class Control
 
 	public boolean copyContents(String existingTable, String newTable)
 	{
+		connectToMySQLDatabase();
 		DatabaseMetaData databaseMetaData;
 		ResultSet rs = null;
 		Statement st = null;
@@ -376,7 +394,11 @@ public class Control
 		} catch (SQLException e)
 		{
 			e.printStackTrace();
+		} finally 
+		{
+			disconnectFromMySQLDatabase();
 		}
+		
 		if (executed == 0)
 		{
 			return true;
@@ -384,6 +406,107 @@ public class Control
 		return false;
 	}
 
+	protected boolean dropTable (String table)
+	{
+		connectToMySQLDatabase();
+		Statement st = null;
+		int executed = -1;
+		
+		try
+		{
+			st = connection.createStatement();
+			String sql = "DROP TABLE " + table;
+			executed = st.executeUpdate(sql);
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally 
+		{
+			disconnectFromMySQLDatabase();
+		}
+		
+		if (executed == 0)
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	public int numberOfRows (ResultSet rs)
+	{
+		connectToMySQLDatabase();
+		int countRow = -1;
+		try
+		{
+			countRow = rs.last() ? rs.getRow() : 0;
+			rs.beforeFirst();
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			disconnectFromMySQLDatabase();
+		}
+		return countRow;
+	}
+	
+	protected Object[][] actionPerformedGetContent(String table)
+	{
+		ResultSet rs = null;
+		try
+		{
+			rs = returnContentsOfTable(table); //connection still open
+			int rowCount = rs.last() ? rs.getRow() : 0;
+			rs.beforeFirst();
+			ResultSetMetaData rsm = rs.getMetaData();
+			int columns = rsm.getColumnCount();
+	
+			Object[][] data = new Object[rowCount][columns];
+	
+			int row = 0;
+	
+			while (rs.next())
+			{
+				for (int column = 1; column <= columns; column++)
+				{
+					data[row][column - 1] = rs.getObject(column);
+				}
+				row++;
+			}
+			return data;
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			disconnectFromMySQLDatabase();
+		}
+		return null; //should not get to here
+	}
+	
+	protected boolean performDMLOperation(String operation)
+	{
+		connectToMySQLDatabase();
+		Statement st = null;
+		int executed = -1;
+		
+		try
+		{
+			st = connection.createStatement();
+			executed = st.executeUpdate(operation);
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			disconnectFromMySQLDatabase();
+		}
+		if (executed != 0)
+		{
+			return true;
+		}
+		return false;
+	}
 
 	private void populateApostropheSet()
 	{
