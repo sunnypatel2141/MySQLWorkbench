@@ -7,29 +7,22 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
-import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
-import javax.swing.plaf.basic.BasicTabbedPaneUI.TabbedPaneLayout;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
-import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
 import java.awt.event.ActionListener;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.awt.event.ActionEvent;
 import javax.swing.JTextPane;
 import javax.swing.JTabbedPane;
-import java.awt.FlowLayout;
 import java.awt.Font;
 
 public class MySQLWorkbenchApp
@@ -166,16 +159,6 @@ public class MySQLWorkbenchApp
 		};
 		
 		listOfTables.addListSelectionListener(listChanged);
-
-		//horizontally scrollable pane
-		JTextPane textPane = new JTextPane()
-		{
-			@Override
-			public boolean getScrollableTracksViewportWidth()
-			{
-				return getUI().getPreferredSize(this).width <= getParent().getSize().width;
-			}
-		};
 	
 		JButton btnGetContent = new JButton("Get Content");
 		btnGetContent.setBounds(1123, 410, 117, 29);
