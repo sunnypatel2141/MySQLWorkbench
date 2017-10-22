@@ -1,14 +1,13 @@
 import java.sql.Connection;
-import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
+//import java.sql.Types;
 import java.util.ArrayList;
-import java.util.HashSet;
+//import java.util.HashSet;
 
 public class Control
 {
@@ -22,15 +21,15 @@ public class Control
 
 	private Connection connection = null;
 	
-	private static final int FIELD = 1;
-	private static final int TYPE = 2;
-	private static final int NULL = 3;
-	private static final int KEY = 4;
-	private static final int DEFAULT = 5;
-	private static final int EXTRA = 6;
+//	private static final int FIELD = 1;
+//	private static final int TYPE = 2;
+//	private static final int NULL = 3;
+//	private static final int KEY = 4;
+//	private static final int DEFAULT = 5;
+//	private static final int EXTRA = 6;
 
-	//set for keeping track of which data types require apostrophe for insertion
-	private HashSet<Integer> ApostropheSet = new HashSet<Integer>();
+//	set for keeping track of which data types require apostrophe for insertion
+//	private HashSet<Integer> ApostropheSet = new HashSet<Integer>();
 
 	protected Control()
 	{
@@ -258,6 +257,10 @@ public class Control
 
 	boolean createTable(String existingTable, String newTable)
 	{
+		String sql = "CREATE TABLE " + newTable + " LIKE " + existingTable;
+		return performDDLOperation(sql);
+		
+		/**
 		connectToMySQLDatabase();
 		ResultSet rs = null;
 		PreparedStatement st = null;
@@ -343,10 +346,15 @@ public class Control
 			return true;
 		}
 		return false;
+		*/
 	}
 
 	public boolean copyContents(String existingTable, String newTable)
 	{
+		String sql = "INSERT INTO " + newTable + " SELECT * FROM " + existingTable;
+		return performDMLOperation(sql);
+
+		/**
 		connectToMySQLDatabase();
 		DatabaseMetaData databaseMetaData;
 		ResultSet rs = null;
@@ -404,6 +412,7 @@ public class Control
 			return true;
 		}
 		return false;
+		*/
 	}
 
 	protected boolean dropTable (String table)
@@ -508,6 +517,31 @@ public class Control
 		return false;
 	}
 
+	protected boolean performDDLOperation(String operation)
+	{
+		connectToMySQLDatabase();
+		Statement st = null;
+		int executed = -1;
+		
+		try
+		{
+			st = connection.createStatement();
+			executed = st.executeUpdate(operation);
+		} catch (SQLException e)
+		{
+			e.printStackTrace();
+		} finally
+		{
+			disconnectFromMySQLDatabase();
+		}
+		if (executed == 0)
+		{
+			return true;
+		}
+		return false;
+	}
+	
+	/**
 	private void populateApostropheSet()
 	{
 		ApostropheSet.add(Types.CHAR);
@@ -522,6 +556,7 @@ public class Control
 		ApostropheSet.add(Types.LONGNVARCHAR);
 		ApostropheSet.add(Types.NCHAR);
 	}
+	*/
 	
 	protected String getUsername()
 	{

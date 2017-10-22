@@ -242,6 +242,7 @@ public class MySQLWorkbenchApp
 		mframe.getContentPane().add(btnRefresh);
 		
 		JTextPane textPaneForEditor = new JTextPane();
+		textPaneForEditor.setFont(new Font("Lucida Grande", Font.PLAIN, 16));
 		
 		JScrollPane scrollPaneForEditor = new JScrollPane(textPaneForEditor);
 		scrollPaneForEditor.setBounds(25, 40, 769, 443);
@@ -359,16 +360,16 @@ public class MySQLWorkbenchApp
 	
 	private void parseEditorAndExecute(JTextPane tp)
 	{
-		String[] lines = tp.getText().split(";");
+		String[] lines = tp.getText().split("\n");
 		int length = lines.length;
 		
 		for (int i = 0; i < length; i++)
 		{
-			lines[i] = lines[i].toLowerCase();
-			if (lines[i].contains("select"))
+			String line = lines[i].toLowerCase().replace(";", "");
+			if (line.contains("select") && !line.contains("create"))
 			{
-				int index = lines[i].indexOf("select * from ");
-				String table = lines[i].substring(index+14, lines[i].length());
+				String[] syntax = line.split(" ");
+				String table = syntax[syntax.length - 1];
 				if (tablesList.contains(table))
 				{
 					actionPerformedGetContent(table);
@@ -376,31 +377,30 @@ public class MySQLWorkbenchApp
 				{
 					populateConsole("Error: Table " + table + " does not exist.");
 				}
-			} else if (lines[i].contains("drop"))
+			} else if (line.contains("drop") || line.contains("create"))
 			{
-				int index = lines[i].indexOf("drop table ");
-				String table = lines[i].substring(index+11, lines[i].length());
-				if (tablesList.contains(table))
-				{
-					dropTable(table);
-					populateConsole("Success: Dropped table " + table);
-				} else
-				{
-					populateConsole("Error: Table " + table + " does not exist.");
-				}
-			} else if (lines[i].contains("insert") || lines[i].contains("update") || lines[i].contains("delete"))
-			{
-				boolean executed = ctrl.performDMLOperation(lines[i]);
+				boolean executed = ctrl.performDDLOperation(line);
 				if (executed) 
 				{
-					populateConsole("Success: Executed `" + lines[i] + "`");
+					populateConsole("Success: Executed `" + line + "`. Refresh table list to observe changes.");
+					refreshList();
 				} else
 				{
-					populateConsole("Error: Unable to execute `" + lines[i] + "`. Check if syntax is correct.");
+					populateConsole("Error: Unable to execute `" + line + "`. Check if syntax is correct.");
+				}
+			} else if (line.contains("insert") || line.contains("update") || line.contains("delete"))
+			{
+				boolean executed = ctrl.performDMLOperation(line);
+				if (executed) 
+				{
+					populateConsole("Success: Executed `" + line + "`.");
+				} else
+				{
+					populateConsole("Error: Unable to execute `" + line + "`. Check if syntax is correct.");
 				}
 			} else
 			{
-				populateConsole("Error: Unknown operation. The application can only perform limited number of DDL/DML operations.");
+				populateConsole("Error: Unknown operation. The application can only perform select DDL/DML operations.");
 			}
 		}
 	}
