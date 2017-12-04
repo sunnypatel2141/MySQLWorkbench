@@ -1,3 +1,4 @@
+package ViewModel;
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.util.ArrayList;
@@ -15,6 +16,9 @@ import javax.swing.text.BadLocationException;
 import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+
+import controller.Control;
+
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JTextField;
@@ -115,14 +119,8 @@ public class MySQLWorkbenchApp
 		mframe.getContentPane().add(tabbedPane);
 		
 		// call Control model
-		ctrl = new Control();
+		ctrl = new Control(params[0], params[1], params[2], params[3]);
 		populateConsole("Success: Started application.");
-		
-		//assign properties
-		ctrl.setDatabase(params[0]);
-		ctrl.setUsername(params[1]);
-		ctrl.setPassword(params[2]);
-		ctrl.setURL(params[3]);
 		
 		connectToDB();
 		populateConsole("Success: Connected to database.");

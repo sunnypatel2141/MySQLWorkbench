@@ -1,3 +1,4 @@
+package controller;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -31,8 +32,12 @@ public class Control
 //	set for keeping track of which data types require apostrophe for insertion
 //	private HashSet<Integer> ApostropheSet = new HashSet<Integer>();
 
-	protected Control()
+	public Control(String db, String username, String pw, String url)
 	{
+		setDatabase(db);
+		setUsername(username);
+		setPassword(pw);
+		setURL(url);
 	}
 
 	// inner class to store table describe
@@ -255,7 +260,7 @@ public class Control
 		return tables.toArray(new String[tables.size()]);
 	}
 
-	boolean createTable(String existingTable, String newTable)
+	public boolean createTable(String existingTable, String newTable)
 	{
 		String sql = "CREATE TABLE " + newTable + " LIKE " + existingTable;
 		return performDDLOperation(sql);
@@ -415,7 +420,7 @@ public class Control
 		*/
 	}
 
-	protected boolean dropTable (String table)
+	public boolean dropTable (String table)
 	{
 		connectToMySQLDatabase();
 		Statement st = null;
@@ -459,7 +464,7 @@ public class Control
 		return countRow;
 	}
 	
-	protected Object[][] actionPerformedGetContent(String table)
+	public Object[][] actionPerformedGetContent(String table)
 	{
 		ResultSet rs = null;
 		try
@@ -493,7 +498,7 @@ public class Control
 		return null; //should not get to here
 	}
 	
-	protected boolean performDMLOperation(String operation)
+	public boolean performDMLOperation(String operation)
 	{
 		connectToMySQLDatabase();
 		Statement st = null;
@@ -517,7 +522,7 @@ public class Control
 		return false;
 	}
 
-	protected boolean performDDLOperation(String operation)
+	public boolean performDDLOperation(String operation)
 	{
 		connectToMySQLDatabase();
 		Statement st = null;
@@ -563,12 +568,12 @@ public class Control
 		return new String(username);
 	}
 
-	protected String getDatabase()
+	public String getDatabase()
 	{
 		return new String(database);
 	}
 
-	protected String getPassword()
+	public String getPassword()
 	{
 		return new String(password);
 	}
