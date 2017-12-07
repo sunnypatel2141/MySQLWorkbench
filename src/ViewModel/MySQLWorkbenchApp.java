@@ -97,11 +97,11 @@ public class MySQLWorkbenchApp
 		mframe.getContentPane().setLayout(null);
 
 		JLabel lblListOfTables = new JLabel("List of Tables:");
-		lblListOfTables.setBounds(831, 42, 89, 16);
+		lblListOfTables.setBounds(785, 43, 89, 16);
 		mframe.getContentPane().add(lblListOfTables);
 
 		JScrollPane scrollPane = new JScrollPane();
-		scrollPane.setBounds(930, 40, 327, 347);
+		scrollPane.setBounds(890, 40, 365, 330);
 		mframe.getContentPane().add(scrollPane);
 		
 		paneForOutput = new JTextPane();
@@ -159,7 +159,7 @@ public class MySQLWorkbenchApp
 		listOfTables.addListSelectionListener(listChanged);
 	
 		JButton btnGetContent = new JButton("Get Content");
-		btnGetContent.setBounds(1123, 410, 117, 29);
+		btnGetContent.setBounds(1123, 382, 117, 29);
 		btnGetContent.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -170,12 +170,12 @@ public class MySQLWorkbenchApp
 		mframe.getContentPane().add(btnGetContent);
 
 		newTableName = new JTextField("Enter new table name");
-		newTableName.setBounds(930, 451, 175, 26);
+		newTableName.setBounds(936, 420, 175, 26);
 		mframe.getContentPane().add(newTableName);
 		newTableName.setColumns(10);
 
 		JButton btnCreateTable = new JButton("Create Table");
-		btnCreateTable.setBounds(1123, 451, 117, 29);
+		btnCreateTable.setBounds(1123, 420, 117, 29);
 		btnCreateTable.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -202,12 +202,12 @@ public class MySQLWorkbenchApp
 		mframe.getContentPane().add(btnCreateTable);
 
 		JLabel lblCopyTable = new JLabel("Copy Table...");
-		lblCopyTable.setBounds(844, 456, 89, 16);
+		lblCopyTable.setBounds(843, 425, 89, 16);
 		mframe.getContentPane().add(lblCopyTable);
 
 		//copy table contents to new table (create table if not exists)
 		JButton buttonCopyContent = new JButton("Copy Content");
-		buttonCopyContent.setBounds(1123, 492, 117, 29);
+		buttonCopyContent.setBounds(1123, 454, 117, 29);
 		buttonCopyContent.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -228,7 +228,7 @@ public class MySQLWorkbenchApp
 		
 		//update table list
 		JButton btnRefresh = new JButton("Refresh");
-		btnRefresh.setBounds(994, 410, 117, 29);
+		btnRefresh.setBounds(994, 382, 117, 29);
 		btnRefresh.addActionListener(new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -243,11 +243,11 @@ public class MySQLWorkbenchApp
 		textPaneForEditor.setFont(new Font("Lucida Grande", Font.PLAIN, 16));
 		
 		JScrollPane scrollPaneForEditor = new JScrollPane(textPaneForEditor);
-		scrollPaneForEditor.setBounds(25, 40, 769, 443);
+		scrollPaneForEditor.setBounds(25, 40, 730, 443);
 		mframe.getContentPane().add(scrollPaneForEditor);
 		
 		JButton btnExecute = new JButton("Execute");
-		btnExecute.setBounds(682, 492, 117, 29);
+		btnExecute.setBounds(638, 492, 117, 29);
 		btnExecute.addActionListener(new ActionListener() 
 		{
 			public void actionPerformed(ActionEvent e) 
@@ -269,8 +269,32 @@ public class MySQLWorkbenchApp
 				}
 			}
 		});
-		buttonDeleteTable.setBounds(994, 492, 117, 29);
+		buttonDeleteTable.setBounds(994, 454, 117, 29);
 		mframe.getContentPane().add(buttonDeleteTable);
+		
+		JButton stop_listening = new JButton("Stop Listening");
+		stop_listening.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+			}
+		});
+		stop_listening.setBounds(1123, 501, 117, 29);
+		mframe.getContentPane().add(stop_listening);
+		
+		JButton start_listening = new JButton("Start Listening");
+		start_listening.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Thread thr = new Thread()
+				{
+					public void run()
+					{
+						System.out.println("Thread Running");
+				    }
+				};
+				thr.start();
+			}
+		});
+		start_listening.setBounds(994, 501, 117, 29);
+		mframe.getContentPane().add(start_listening);
 		
 		disconnectFromDB();
 		populateConsole("Success: Disconnected from database.");
