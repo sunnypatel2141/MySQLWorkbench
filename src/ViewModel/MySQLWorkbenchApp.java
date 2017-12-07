@@ -287,7 +287,10 @@ public class MySQLWorkbenchApp
 				{
 					public void run()
 					{
-						System.out.println("Thread Running");
+						if (table != null) 
+						{
+							populateConsole("Number of rows: " + ctrl.numberOfRows(table));
+						}
 				    }
 				};
 				thr.start();
