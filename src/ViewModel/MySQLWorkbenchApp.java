@@ -1,8 +1,10 @@
 package ViewModel;
+
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -35,6 +37,7 @@ public class MySQLWorkbenchApp
 	private JFrame mframe;
 	private Control ctrl;
 	private String table;
+	private Thread thr;
 	private JTextField newTableName;
 	private DefaultListModel<String> tablesList;
 	private String[] columnNamesGlobal;
@@ -43,12 +46,50 @@ public class MySQLWorkbenchApp
 	JTextPane paneForConsole, paneForOutput;
 	private boolean emptyPane = true;
 	private boolean enteredValidTableName = false;
-	
+
 	public SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
 	private static final int RESULTS = 0;
 	private static final int CONSOLE = 1;
-	
+
+	class Server implements Runnable
+	{
+		private String table = null;
+		private volatile boolean exit = false;
+		
+		Server(String table)
+		{
+			this.table = table;
+		}
+		
+		public void run()
+		{
+			int numOfRows = ctrl.numberOfRows(table);
+			while (!exit)
+			{
+				int currNumOfRows = ctrl.numberOfRows(table);
+				if (currNumOfRows != numOfRows)
+				{
+					actionPerformedGetContent(table);
+					numOfRows = currNumOfRows;
+				}
+				try
+				{
+					Thread.sleep(1000);
+				} catch (InterruptedException e)
+				{
+					System.out.println("Thread Sleep caused an error...");
+					e.printStackTrace();
+				}
+			}
+		}
+
+		public void stop()
+		{
+			exit = true;
+		}
+	}
+
 	/**
 	 * Launch the application.
 	 */
@@ -103,29 +144,29 @@ public class MySQLWorkbenchApp
 		JScrollPane scrollPane = new JScrollPane();
 		scrollPane.setBounds(890, 40, 365, 330);
 		mframe.getContentPane().add(scrollPane);
-		
+
 		paneForOutput = new JTextPane();
 		JScrollPane jspOutput = new JScrollPane(paneForOutput);
 		jspOutput.setBounds(232, 5, 0, 16);
-		
+
 		paneForConsole = new JTextPane();
 		JScrollPane jspConsole = new JScrollPane(paneForConsole);
 		jspConsole.setBounds(232, 5, 0, 16);
-		
+
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
 		tabbedPane.setBounds(0, 542, 1280, 150);
 		tabbedPane.add("Results", jspOutput);
 		tabbedPane.add("Console", jspConsole);
 		mframe.getContentPane().add(tabbedPane);
-		
+
 		// call Control model
 		ctrl = new Control(params[0], params[1], params[2], params[3]);
 		populateConsole("Success: Started application.");
-		
+
 		connectToDB();
 		populateConsole("Success: Connected to database.");
 
-		//populate JList with tables
+		// populate JList with tables
 		JLabel lblDatabase = new JLabel("Database: " + ctrl.getDatabase());
 		lblDatabase.setFont(new Font("Lucida Grande", Font.PLAIN, 15));
 		lblDatabase.setBounds(25, 6, 198, 29);
@@ -137,12 +178,12 @@ public class MySQLWorkbenchApp
 		{
 			tablesList.addElement(tab);
 		}
-		
+
 		JList<String> listOfTables = new JList<String>(tablesList);
 		listOfTables.setFont(new Font("Lucida Grande", Font.PLAIN, 13));
 		scrollPane.setViewportView(listOfTables);
 		listOfTables.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
-		
+
 		ListSelectionListener listChanged = new ListSelectionListener()
 		{
 			@Override
@@ -150,14 +191,14 @@ public class MySQLWorkbenchApp
 			{
 				if (!evt.getValueIsAdjusting())
 				{
-					//change table value to currently selected table
+					// change table value to currently selected table
 					selectedTable(listOfTables.getSelectedValue());
 				}
 			}
 		};
-		
+
 		listOfTables.addListSelectionListener(listChanged);
-	
+
 		JButton btnGetContent = new JButton("Get Content");
 		btnGetContent.setBounds(1123, 382, 117, 29);
 		btnGetContent.addActionListener(new ActionListener()
@@ -205,7 +246,7 @@ public class MySQLWorkbenchApp
 		lblCopyTable.setBounds(843, 425, 89, 16);
 		mframe.getContentPane().add(lblCopyTable);
 
-		//copy table contents to new table (create table if not exists)
+		// copy table contents to new table (create table if not exists)
 		JButton buttonCopyContent = new JButton("Copy Content");
 		buttonCopyContent.setBounds(1123, 454, 117, 29);
 		buttonCopyContent.addActionListener(new ActionListener()
@@ -225,8 +266,8 @@ public class MySQLWorkbenchApp
 			}
 		});
 		mframe.getContentPane().add(buttonCopyContent);
-		
-		//update table list
+
+		// update table list
 		JButton btnRefresh = new JButton("Refresh");
 		btnRefresh.setBounds(994, 382, 117, 29);
 		btnRefresh.addActionListener(new ActionListener()
@@ -238,29 +279,29 @@ public class MySQLWorkbenchApp
 			}
 		});
 		mframe.getContentPane().add(btnRefresh);
-		
+
 		JTextPane textPaneForEditor = new JTextPane();
 		textPaneForEditor.setFont(new Font("Lucida Grande", Font.PLAIN, 16));
-		
+
 		JScrollPane scrollPaneForEditor = new JScrollPane(textPaneForEditor);
 		scrollPaneForEditor.setBounds(25, 40, 730, 443);
 		mframe.getContentPane().add(scrollPaneForEditor);
-		
+
 		JButton btnExecute = new JButton("Execute");
 		btnExecute.setBounds(638, 492, 117, 29);
-		btnExecute.addActionListener(new ActionListener() 
+		btnExecute.addActionListener(new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				parseEditorAndExecute(textPaneForEditor);
 			}
 		});
 		mframe.getContentPane().add(btnExecute);
-		
+
 		JButton buttonDeleteTable = new JButton("Drop Table");
-		buttonDeleteTable.addActionListener(new ActionListener() 
+		buttonDeleteTable.addActionListener(new ActionListener()
 		{
-			public void actionPerformed(ActionEvent e) 
+			public void actionPerformed(ActionEvent e)
 			{
 				if (table != null)
 				{
@@ -271,34 +312,32 @@ public class MySQLWorkbenchApp
 		});
 		buttonDeleteTable.setBounds(994, 454, 117, 29);
 		mframe.getContentPane().add(buttonDeleteTable);
-		
+
+		Server myServer = null;
 		JButton stop_listening = new JButton("Stop Listening");
-		stop_listening.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		stop_listening.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				stopListeningForChanges(myServer);
 			}
 		});
 		stop_listening.setBounds(1123, 501, 117, 29);
 		mframe.getContentPane().add(stop_listening);
 		
+		//314, 277, 69
+
 		JButton start_listening = new JButton("Start Listening");
-		start_listening.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Thread thr = new Thread()
-				{
-					public void run()
-					{
-						if (table != null) 
-						{
-							populateConsole("Number of rows: " + ctrl.numberOfRows(table));
-						}
-				    }
-				};
-				thr.start();
+		start_listening.addActionListener(new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				startListeningForChanges(myServer);
 			}
 		});
 		start_listening.setBounds(994, 501, 117, 29);
 		mframe.getContentPane().add(start_listening);
-		
+
 		disconnectFromDB();
 		populateConsole("Success: Disconnected from database.");
 	}
@@ -327,14 +366,14 @@ public class MySQLWorkbenchApp
 		ctrl.disconnectFromMySQLDatabase();
 	}
 
-	//copy table information to global variable for retrieving content
+	// copy table information to global variable for retrieving content
 	private void transferTableInformation(String[] columnNames, Object[][] data)
 	{
 		columnNamesGlobal = columnNames.clone();
 		dataGlobal = data.clone();
 	}
-	
-	//call model create method
+
+	// call model create method
 	private boolean createTable(String existingTable, JTextField newTable)
 	{
 		return ctrl.createTable(existingTable, newTable.getText());
@@ -351,7 +390,7 @@ public class MySQLWorkbenchApp
 		{
 			String[] columnNames = ctrl.columnNames(table);
 			Object[][] data = ctrl.actionPerformedGetContent(table);
-			
+
 			transferTableInformation(columnNames, data);
 			populateConsole("Success: Retrieved contents for table " + table);
 			populatePane(textPane);
@@ -360,12 +399,12 @@ public class MySQLWorkbenchApp
 			JOptionPane.showMessageDialog(mframe, "Select a table...");
 		}
 	}
-	
+
 	private void actionPerformedGetContent(String table)
 	{
 		String[] columnNames = ctrl.columnNames(table);
 		Object[][] data = ctrl.actionPerformedGetContent(table);
-		
+
 		transferTableInformation(columnNames, data);
 		populateConsole("Success: Retrieved contents for table " + table);
 		populatePane(paneForOutput);
@@ -382,12 +421,12 @@ public class MySQLWorkbenchApp
 		}
 		return tablesList;
 	}
-	
+
 	private void parseEditorAndExecute(JTextPane tp)
 	{
 		String[] lines = tp.getText().split("\n");
 		int length = lines.length;
-		
+
 		for (int i = 0; i < length; i++)
 		{
 			String line = lines[i].toLowerCase().replace(";", "");
@@ -405,7 +444,7 @@ public class MySQLWorkbenchApp
 			} else if (line.contains("drop") || line.contains("create"))
 			{
 				boolean executed = ctrl.performDDLOperation(line);
-				if (executed) 
+				if (executed)
 				{
 					populateConsole("Success: Executed `" + line + "`. Refresh table list to observe changes.");
 					refreshList();
@@ -416,7 +455,7 @@ public class MySQLWorkbenchApp
 			} else if (line.contains("insert") || line.contains("update") || line.contains("delete"))
 			{
 				boolean executed = ctrl.performDMLOperation(line);
-				if (executed) 
+				if (executed)
 				{
 					populateConsole("Success: Executed `" + line + "`.");
 				} else
@@ -425,16 +464,40 @@ public class MySQLWorkbenchApp
 				}
 			} else
 			{
-				populateConsole("Error: Unknown operation. The application can only perform select DDL/DML operations.");
+				populateConsole(
+						"Error: Unknown operation. The application can only perform select DDL/DML operations.");
 			}
 		}
 	}
+
+	private void startListeningForChanges(Server myServer)
+	{
+		if (table != null)
+		{
+			 myServer = new Server(table);
+			 Thread thr = new Thread(myServer, "thr");
+			 thr.start();
+		}
+	}
 	
-	private void dropTable(String table) 
+	private void stopListeningForChanges(Server myServer)
+	{
+		try
+		{
+			myServer.stop();
+			TimeUnit.MILLISECONDS.sleep(200);
+		} catch (InterruptedException e)
+		{
+			System.out.println("Unable to stop server...");
+			e.printStackTrace();
+		}
+	}
+
+	private void dropTable(String table)
 	{
 		ctrl.dropTable(table);
 	}
-	
+
 	public String toString()
 	{
 		StringBuffer aString = new StringBuffer();
@@ -459,7 +522,7 @@ public class MySQLWorkbenchApp
 		return aString.toString();
 	}
 
-	//populate text pane with table data
+	// populate text pane with table data
 	private void populatePane(JTextPane textPane)
 	{
 		StyledDocument doc = textPane.getStyledDocument();
@@ -492,7 +555,7 @@ public class MySQLWorkbenchApp
 		Date d = new Date();
 		StyledDocument doc = paneForConsole.getStyledDocument();
 		Style style = paneForConsole.addStyle("Color Style", null);
-		
+
 		try
 		{
 			doc.insertString(doc.getLength(), d.toString() + ": " + text + "\n", style);
